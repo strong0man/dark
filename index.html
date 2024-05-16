@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Management System</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        .section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 300px;
+            margin: 10px;
+        }
+        button, input {
+            padding: 10px;
+            margin: 10px;
+            width: calc(100% - 20px);
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="teacher-section" class="section">
+        <h1>Teacher Dashboard</h1>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button onclick="generateCode()">Generate Code</button>
+        <div id="code-display"></div>
+        <button onclick="toggleAttendanceList()">Show Attendance List</button>
+        <ul id="student-list" style="display: none;"></ul>
+        <button onclick="saveDataToDatabase()">Save Data to Database</button>
+        <button onclick="toggleView('student')">Switch to Student View</button> <!-- Ajout du bouton de bascule -->
+    </div>
+    <div id="student-section" class="section" style="display: none;">
+        <h1>Student Attendance</h1>
+        <input type="text" id="code" placeholder="Attendance Code" required>
+        <button onclick="checkCode()">Submit Code</button>
+        <div id="attendance-form" style="display: none;">
+            <input type="text" id="name" placeholder="Name" required>
+            <input type="text" id="surname" placeholder="Surname" required>
+            <button onclick="submitAttendance()">Submit Attendance</button>
+        </div>
+        <button onclick="toggleView('teacher')">Switch to Teacher View</button> <!-- Ajout du bouton de bascule -->
+    </div>
+
+    <script>
+        let students = JSON.parse(localStorage.getItem('students')) || [];
+
+        function generateCode() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            if (email === 'prof@example.com' && password === 'password') {
+                const code = Math.floor(1000 + Math.random() * 9000);
+                document.getElementById('code-display').innerText = "Your attendance code: " + code;
+                sessionStorage.setItem('attendanceCode', code);
+            } else {
+                alert("Incorrect email or password.");
+            }
+        }
+
+        function checkCode() {
+            const enteredCode = document.getElementById('code').value;
+            const storedCode = sessionStorage.getItem('attendanceCode');
+            if (enteredCode == storedCode) {
+                document.getElementById('attendance-form').style.display = 'block';
+            } else {
+                alert("Incorrect code.");
+            }
+        }
+
+        function submitAttendance() {
+            const name = document.getElementById('name').value;
+            const surname = document.getElementById('surname').value;
+            students.push({ name, surname, status: 'Present', timestamp: new Date().toISOString() });
+            localStorage.setItem('students', JSON.stringify(students));
+            alert("Attendance marked!");
+            document.getElementById('attendance-form').style.display = 'none';
+        }
+
+        function toggleAttendanceList() {
+            const studentList = document.getElementById('student-list');
+            studentList.style.display = studentList.style.display === 'none' ? 'block' : 'none';
+            if (studentList.style.display === 'block') {
+                studentList.innerHTML = students.map(s => <li>${s.name} ${s.surname} - ${s.status} - ${new Date(s.timestamp).toLocaleString()}</li>).join('');
+            }
+        }
+
+        function saveDataToDatabase() {
+            fetch('save_data.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(students)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                alert('Data saved successfully!');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to save data.');
+            });
+        }
+
+        function toggleView(view) {
+            if (view === 'teacher') {
+                document.getElementById('teacher-section').style.display = 'block';
+                document.getElementById('student-section').style.display = 'none';
+            } else if (view === 'student') {
+                document.getElementById('teacher-section').style.display = 'none';
+                document.getElementById('student-section').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
